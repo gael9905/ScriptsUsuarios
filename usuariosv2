@@ -76,10 +76,10 @@ agregar_sudo(){
 							return
 							;;
 						2)
-							echo "Introduzca los comandos que podrá ejecutar el usuario, separados por coma, sin espacios y con la ruta completa"
-							echo "Ejemplo:/usr/bin/passwd"
+							echo "Introduzca los comandos que podrá ejecutar el usuario, separados por coma, separado por espacios y con la ruta completa"
+							echo "Ejemplo:/usr/bin/passwd, /usr/bin/ip"
 							read -r comandos_sudo
-							echo "$usuario ALL=(ALL) NOPASSWD: $comandos_sudo" | sudo tee /etc/sudoers.d/"$usuario" > /dev/null
+							echo "$usuario ALL=(ALL) $comandos_sudo" | sudo tee /etc/sudoers.d/"$usuario" > /dev/null
 							if sudo visudo -c -f /etc/sudoers.d/"$usuario"; then
 							     sudo chmod 440 /etc/sudoers.d/"$usuario"
 							     echo "Se han configurado los comandos permitidos para el usuario."
