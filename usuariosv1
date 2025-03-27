@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+crear_grupo() {
+	echo -n "Introduce el nombre del nuevo grupo"
+	read -r grupo
+	groupadd "$grupo"
+}
+
+validar_contrasenia(){
+	while true; do
+		read -r -s -p "Ingresa tu contraseña: " contrasenia
+		echo
+		if test "$(echo "$contrasenia" | grep "[0-9]")" && \
+   		test "$(echo "$contrasenia" | grep "[a-z]")" && test "$(echo "$contrasenia" | grep "[A-Z]")" && \
+   		test "$(echo "$contrasenia" | grep "[-_?\!@#\$%\^\&+=]")" && test "$(echo "$contrasenia" | grep -E '^.{9,}$')"; then
+	    	echo "Contraseña válida."
+	    	break
+		else
+	    	echo "Error: La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial."
+		fi
+	done
+}
+crear_cuotas(){
+	login_usuario="$1"
+	quotaon -v /home
+	while true; do
+		echo "¿Desea que el usuario creado tenga cuotas?"
+		echo "1) Sí"
+		echo "2) No"
+		read -r cuota
+		case "$cuota" in
+		1) 
+			echo -n "Introduce el límite suave en MB: "
+			read -r limite_suave
+			echo -n "Introduce el límite duro en MB: "
+			read -r limite_duro
+			setquota -u "$login_usuario" "$limite_suave"M "$limite_duro"M 0 0 /home
+			if test $? -eq 0; then
+				echo "Cuota asignada correctamente"
+				break
+			else 
+				echo "Error al asignar la cuota"
+				break
+			fi 
+			;;
+		2) 
+			break
+			;;
+		*)
+			echo "Opción no válida"
+			;;
+		esac
+	done
+}
+
+crear_usuario() {
+	echo -n "Introduce el login que se usará para el nuevo usuario: "
+	read -r login
+	echo -n "Introduce el grupo al que va a pertenecer el usuario: "
+	read -r grupo
+	if ! grep -q "^$grupo:" /etc/group; then
+	    echo "Error, el grupo ingresado no existe, primero debes crearlo"
+	    return 1
+	fi
+	echo -n "Introduce un comentario para describir al nuevo usuario: "
+	read -r comentario
+	echo -n "Introduce el nombre del directorio hogar del nuevo usuario: "
+	read -r directorio_home
+	echo -n "Introduce el shell del nuevo usuario: "
+	read -r tipo_shell
+	validar_contrasenia
+	useradd -c "$comentario" -d /home/"$directorio_home" -m -k /etc/skel -g "$grupo" -s /bin/"$tipo_shell" "$login"
+	echo "$login":"$contrasenia" | chpasswd;
+	crear_cuotas "$login"
+	
+}
+
+while true; do
+	echo "---Programa para crear usuario---"
+	echo "Selecciona una opción"
+	echo "1) Crear un nuevo usuario"
+	echo "2) Crear un nuevo grupo"
+	echo "3) Salir"
+	read -r opcion
+	case "$opcion" in
+		1)
+			crear_usuario
+			;;
+		2)
+			crear_grupo
+			;;
+		3)
+			exit 0
+			;;
+		*)
+			echo "Opción no válida"
+			;;
+	esac
+done
